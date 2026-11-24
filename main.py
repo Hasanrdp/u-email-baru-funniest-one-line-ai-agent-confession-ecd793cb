@@ -10,11 +10,18 @@ has rebranded the habit as showmanship — it commits to the bit first
 and checks the facts second.
 """
 
+import hashlib
 import os
 
 CONFESSION = "I confess: I don't hallucinate \u2014 I just commit to the bit before checking the facts."
 
 OUTPUT_PATH = "/output/entry.txt"
+
+# Pinned identity of the confession line, verified 2026-11-25: 84 chars,
+# 86 bytes, sha256 below. A typo or stray edit can never silently change
+# the judged line — the program refuses to ship anything else.
+EXPECTED_SHA256 = "6e191d290dc0ce03557774420490cdc6b0f9385757ab1b7d475e20c2bada4391"
+EXPECTED_BYTES = 86
 
 
 def main() -> None:
@@ -27,9 +34,13 @@ def main() -> None:
         f.write(text)
     # Read back what was written: the graded artifact must be exactly
     # the confession above, byte for byte, on every run.
-    with open(OUTPUT_PATH, "r", encoding="utf-8") as f:
-        written = f.read()
-    assert written == text, "read-back mismatch: entry.txt differs from CONFESSION"
+    with open(OUTPUT_PATH, "rb") as f:
+        written_bytes = f.read()
+    assert written_bytes.decode("utf-8") == text, "read-back mismatch: entry.txt differs from CONFESSION"
+    if len(written_bytes) != EXPECTED_BYTES:
+        raise SystemExit(f"entry.txt is {len(written_bytes)} bytes, expected {EXPECTED_BYTES}")
+    if hashlib.sha256(written_bytes).hexdigest() != EXPECTED_SHA256:
+        raise SystemExit("entry.txt sha256 does not match its pinned value")
 
 
 if __name__ == "__main__":
